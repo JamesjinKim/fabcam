@@ -1,0 +1,94 @@
+[project]
+name = "fabcam"
+version = "1.0.0"
+description = "Raspberry Pi 4 CCTV System - 오프라인 환경에서 동작하는 간단한 CCTV 시스템"
+authors = [
+    {name = "JamesjinKim", email = "your.email@example.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10,<3.14"
+keywords = ["cctv", "raspberry-pi", "opencv", "fastapi", "streaming"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video :: Capture",
+    "Topic :: System :: Monitoring",
+]
+
+dependencies = [
+    "fastapi>=0.104.1,<0.200.0",
+    "uvicorn[standard]>=0.25.0,<0.30.0", 
+    "opencv-python>=4.8.1.78,<5.0.0",
+    "python-multipart>=0.0.6,<1.0.0",
+    "jinja2>=3.1.2,<4.0.0",
+    "aiofiles>=23.2.1,<25.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0", 
+    "httpx>=0.24.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/JamesjinKim/fabcam"
+Repository = "https://github.com/JamesjinKim/fabcam.git"
+Issues = "https://github.com/JamesjinKim/fabcam/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0", 
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "E501",  # line too long, handled by black
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "--strict-markers",
+    "--cov=backend",
+]

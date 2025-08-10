@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabcam CCTV System</title>
+    <link rel="stylesheet" href="/frontend/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📹 Fabcam CCTV System</h1>
+            <div class="status-indicator">
+                <span id="connectionStatus" class="status-connected">연결됨</span>
+                <span id="recordingStatus" class="recording-status">●</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="video-section">
+                <div class="video-container">
+                    <img id="videoStream" 
+                         src="/video_feed" 
+                         alt="Live Video Stream"
+                         onerror="handleStreamError()">
+                    <div id="streamError" class="stream-error" style="display: none;">
+                        <p>카메라 스트림을 불러올 수 없습니다</p>
+                        <button onclick="retryStream()">다시 시도</button>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button id="recordBtn" class="btn btn-record" onclick="toggleRecording()">
+                        📹 녹화 시작
+                    </button>
+                    <button id="snapshotBtn" class="btn btn-snapshot" onclick="captureSnapshot()">
+                        📸 스냅샷
+                    </button>
+                    <button id="refreshBtn" class="btn btn-refresh" onclick="refreshFileList()">
+                        🔄 새로고침
+                    </button>
+                </div>
+            </div>
+
+            <div class="files-section">
+                <h2>저장된 파일</h2>
+                <div class="file-tabs">
+                    <button class="tab-btn active" onclick="showFiles('all')">전체</button>
+                    <button class="tab-btn" onclick="showFiles('video')">동영상</button>
+                    <button class="tab-btn" onclick="showFiles('image')">이미지</button>
+                </div>
+                
+                <div id="filesList" class="files-list">
+                    <!-- 파일 목록이 여기에 동적으로 로드됩니다 -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="/frontend/script.js"></script>
+</body>
+</html>
