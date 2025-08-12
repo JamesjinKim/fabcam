@@ -3,6 +3,13 @@ import threading
 import time
 from datetime import datetime
 import os
+try:
+    from picamera2 import Picamera2
+    PICAMERA2_AVAILABLE = True
+    print("✅ Picamera2 라이브러리 사용 가능")
+except ImportError:
+    PICAMERA2_AVAILABLE = False
+    print("⚠️ Picamera2 사용 불가, OpenCV fallback 사용")
 
 class CameraManager:
     def __init__(self, camera_index=0, width=640, height=480):
@@ -10,6 +17,8 @@ class CameraManager:
         self.width = width
         self.height = height
         self.camera = None
+        self.picam2 = None
+        self.use_picamera2 = PICAMERA2_AVAILABLE
         self.is_streaming = False
         self.is_recording = False
         self.recording_thread = None
@@ -24,15 +33,51 @@ class CameraManager:
         os.makedirs(self.image_dir, exist_ok=True)
     
     def initialize_camera(self):
+        # Picamera2 먼저 시도 (라즈베리파이 카메라 모듈에 최적화)
+        if self.use_picamera2:
+            try:
+                print("🎥 Picamera2로 라즈베리파이 카메라 초기화 중...")
+                self.picam2 = Picamera2()
+                
+                # 카메라 설정
+                config = self.picam2.create_video_configuration({
+                    "format": "RGB888", 
+                    "size": (self.width, self.height)
+                })
+                self.picam2.configure(config)
+                self.picam2.start()
+                
+                # 프레임 읽기 테스트
+                frame = self.picam2.capture_array()
+                if frame is not None:
+                    print(f"✅ Picamera2 카메라 연결 성공!")
+                    print(f"   해상도: {frame.shape[1]}x{frame.shape[0]}")
+                    self.current_frame = frame.copy()
+                    return True
+                else:
+                    print("❌ Picamera2 프레임 읽기 실패")
+                    self.picam2.stop()
+                    self.picam2 = None
+                    
+            except Exception as e:
+                print(f"❌ Picamera2 초기화 실패: {e}")
+                self.use_picamera2 = False
+                if self.picam2:
+                    try:
+                        self.picam2.stop()
+                    except:
+                        pass
+                    self.picam2 = None
+        
+        # OpenCV fallback (USB 카메라나 Picamera2 실패시)
         try:
-            # THSER102 + Pi Camera를 위한 다중 시도 방식
+            print("🔄 OpenCV로 카메라 초기화 중...")
             camera_backends = [
                 (cv2.CAP_V4L2, "V4L2"),
                 (cv2.CAP_ANY, "ANY"),
                 (cv2.CAP_GSTREAMER, "GStreamer")
             ]
             
-            # 다양한 카메라 인덱스 시도 (THSER102는 다른 인덱스를 사용할 수 있음)
             for camera_idx in range(10):
                 for backend, backend_name in camera_backends:
                     try:
@@ -40,17 +85,15 @@ class CameraManager:
                         self.camera = cv2.VideoCapture(camera_idx, backend)
                         
                         if self.camera.isOpened():
-                            # 프레임 읽기 테스트
                             ret, frame = self.camera.read()
                             if ret and frame is not None:
-                                print(f"✅ 카메라 연결 성공: /dev/video{camera_idx} ({backend_name})")
+                                print(f"✅ OpenCV 카메라 연결 성공: /dev/video{camera_idx} ({backend_name})")
                                 print(f"   해상도: {frame.shape[1]}x{frame.shape[0]}")
                                 
-                                # 카메라 설정
                                 self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
                                 self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
                                 self.camera.set(cv2.CAP_PROP_FPS, 30)
-                                self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 버퍼 최소화
+                                self.camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                                 
                                 return True
                             else:
@@ -74,12 +117,19 @@ class CameraManager:
             return False
     
     def release_camera(self):
+        if self.use_picamera2 and self.picam2:
+            try:
+                self.picam2.stop()
+            except:
+                pass
+            self.picam2 = None
+        
         if self.camera:
             self.camera.release()
             self.camera = None
     
     def start_streaming(self):
-        if not self.camera and not self.initialize_camera():
+        if not self.camera and not self.picam2 and not self.initialize_camera():
             return False
         
         self.is_streaming = True
@@ -90,14 +140,25 @@ class CameraManager:
         self.release_camera()
     
     def get_frame(self):
-        if not self.camera or not self.is_streaming:
+        if not self.is_streaming:
             return None
         
         with self.lock:
-            ret, frame = self.camera.read()
-            if ret:
-                self.current_frame = frame.copy()
-                return frame
+            if self.use_picamera2 and self.picam2:
+                try:
+                    frame = self.picam2.capture_array()
+                    if frame is not None:
+                        self.current_frame = frame.copy()
+                        return frame
+                except Exception as e:
+                    print(f"Picamera2 프레임 캡처 오류: {e}")
+                    return None
+            elif self.camera:
+                ret, frame = self.camera.read()
+                if ret:
+                    self.current_frame = frame.copy()
+                    return frame
+            
             return None
     
     def generate_frames(self):
@@ -127,7 +188,7 @@ class CameraManager:
         if self.is_recording:
             return False
         
-        if not self.camera:
+        if not self.camera and not self.picam2:
             return False
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

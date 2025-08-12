@@ -325,3 +325,27 @@ Fabcam CCTV System은 라즈베리파이4의 성능을 최대한 활용하여 �
 - 🔒 **보안성**: 완전한 오프라인 동작, 외부 의존성 없음
 - 🚀 **편의성**: 설치부터 사용까지 간단한 과정
 - 🔧 **확장성**: 필요에 따라 기능 추가 가능한 구조
+
+💡 최소 웹 CCTV 구성
+
+  삭제 후 남겨야 할 최소 파일들:
+  FabCam/
+  ├── backend/           # 백엔드 (필수)
+  │   ├── main.py
+  │   ├── camera.py
+  │   └── models.py
+  ├── frontend/          # 프론트엔드 (필수)
+  │   ├── index.html
+  │   ├── script.js
+  │   └── style.css
+  ├── static/            # 저장소 (필수)
+  │   ├── images/
+  │   └── videos/
+  └── start.sh          # 실행 스크립트 (필수)
+
+  실행 방법:
+  cd FabCam
+  ./start.sh
+
+  접속:
+  http://localhost:8000
