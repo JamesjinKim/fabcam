@@ -5,60 +5,316 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fabcam CCTV System</title>
     <link rel="stylesheet" href="/frontend/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📹 Fabcam CCTV System</h1>
-            <div class="status-indicator">
-                <span id="connectionStatus" class="status-connected">연결됨</span>
-                <span id="recordingStatus" class="recording-status">●</span>
+    <div class="min-h-screen bg-slate-50">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-container">
+                <div class="header-left">
+                    <div class="logo">
+                        <i data-lucide="camera" class="logo-icon"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Fabcam CCTV</h1>
+                        <p>장비 모니터링 시스템</p>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <!-- 시스템 상태 표시기 -->
+                    <div class="system-status">
+                        <div class="status-item">
+                            <i data-lucide="activity" class="status-icon"></i>
+                            <div class="status-info">
+                                <span class="status-label">시스템</span>
+                                <span id="systemStatus" class="status-value">초기화중</span>
+                            </div>
+                        </div>
+                        
+                        <div class="status-item">
+                            <i data-lucide="camera" class="status-icon"></i>
+                            <div class="status-info">
+                                <span class="status-label">카메라</span>
+                                <span id="camerasOnline" class="status-value">0/2</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="connection-indicator">
+                        <i id="connectionIcon" data-lucide="wifi" class="connection-icon"></i>
+                        <span id="connectionStatus" class="connection-badge badge-success">연결됨</span>
+                    </div>
+
+                    <div id="recordingIndicator" class="recording-indicator" style="display: none;">
+                        <i data-lucide="circle" class="recording-dot"></i>
+                        <span>녹화 중</span>
+                    </div>
+                    
+                    <!-- 키보드 단축키 도움말 -->
+                    <button class="help-btn" onclick="showKeyboardHelp()" title="키보드 단축키 도움말">
+                        <i data-lucide="help-circle" class="help-icon"></i>
+                    </button>
+                </div>
             </div>
         </header>
 
-        <main>
-            <div class="video-section">
-                <div class="video-container">
-                    <img id="videoStream" 
-                         src="/video_feed" 
-                         alt="Live Video Stream"
-                         onerror="handleStreamError()">
-                    <div id="streamError" class="stream-error" style="display: none;">
-                        <p>카메라 스트림을 불러올 수 없습니다</p>
-                        <button onclick="retryStream()">다시 시도</button>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button id="recordBtn" class="btn btn-record" onclick="toggleRecording()">
-                        📹 녹화 시작
-                    </button>
-                    <button id="snapshotBtn" class="btn btn-snapshot" onclick="captureSnapshot()">
-                        📸 스냅샷
-                    </button>
-                    <button id="refreshBtn" class="btn btn-refresh" onclick="refreshFileList()">
-                        🔄 새로고침
-                    </button>
-                </div>
-            </div>
+        <!-- Main Content -->
+        <main class="main-container">
+            <div class="dual-camera-grid">
+                <!-- 첫 번째 행: 카메라 피드들과 각각의 제어 위젯 -->
+                <div class="cameras-row">
+                    <!-- 라이브 카메라 1 -->
+                    <div class="camera-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title-group">
+                                    <h3 class="card-title">라이브 카메라 1</h3>
+                                    <div class="camera-status">
+                                        <div id="camera1StatusDot" class="status-dot status-offline"></div>
+                                        <span id="camera1StatusText" class="status-text">초기화중</span>
+                                        <div class="camera-info">
+                                            <span id="camera1Resolution" class="resolution-info">640x480</span>
+                                            <span id="camera1Fps" class="fps-info">30fps</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-content video-content">
+                                <div class="video-container">
+                                    <img id="videoStream1" 
+                                         src="" 
+                                         alt="Live Video Stream Camera 1"
+                                         onerror="handleStreamError(1)">
+                                    <div id="streamError1" class="stream-error" style="display: none;">
+                                        <div class="error-content">
+                                            <i data-lucide="camera-off" class="error-icon"></i>
+                                            <p>카메라 1 스트림을 불러올 수 없습니다</p>
+                                            <button class="btn btn-outline" onclick="retryStream(1)">다시 시도</button>
+                                        </div>
+                                    </div>
+                                    <button class="fullscreen-btn" onclick="openFullscreen(1)" title="전체화면">
+                                        <i data-lucide="maximize" class="fullscreen-icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-            <div class="files-section">
-                <h2>저장된 파일</h2>
-                <div class="file-tabs">
-                    <button class="tab-btn active" onclick="showFiles('all')">전체</button>
-                    <button class="tab-btn" onclick="showFiles('video')">동영상</button>
-                    <button class="tab-btn" onclick="showFiles('image')">이미지</button>
-                </div>
-                
-                <div id="filesList" class="files-list">
-                    <!-- 파일 목록이 여기에 동적으로 로드됩니다 -->
+                        <!-- 카메라 1 제어 위젯 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i data-lucide="circle" class="title-icon text-red"></i>
+                                    녹화 제어
+                                </h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="controls-grid">
+                                    <button id="recordBtn1" class="btn btn-primary btn-large" onclick="toggleRecording(1)">
+                                        <i data-lucide="video" class="btn-icon"></i>
+                                        녹화 시작
+                                        <span class="keyboard-hint">Ctrl+1</span>
+                                    </button>
+                                    <button id="snapshotBtn1" class="btn btn-outline btn-large" onclick="captureSnapshot(1)">
+                                        <i data-lucide="image" class="btn-icon"></i>
+                                        스냅샷
+                                        <span class="keyboard-hint">Ctrl+Shift+1</span>
+                                    </button>
+                                    <div id="recordingStatus1" class="recording-status-card" style="display: none;">
+                                        <div class="status-content">
+                                            <i data-lucide="circle" class="pulse-dot"></i>
+                                            <span>녹화 진행 중</span>
+                                            <span id="recordingDuration1" class="recording-duration">00:00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 카메라 1 동영상 파일 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i data-lucide="video" class="title-icon text-blue"></i>
+                                    동영상 파일
+                                </h3>
+                            </div>
+                            <div class="card-content">
+                                <div id="videoFilesList1" class="files-container">
+                                    <!-- 카메라 1 동영상 파일 목록 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 카메라 1 이미지 파일 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i data-lucide="image" class="title-icon text-green"></i>
+                                    이미지 파일
+                                </h3>
+                            </div>
+                            <div class="card-content">
+                                <div id="imageFilesList1" class="files-container">
+                                    <!-- 카메라 1 이미지 파일 목록 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 라이브 카메라 2 -->
+                    <div class="camera-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title-group">
+                                    <h3 class="card-title">라이브 카메라 2</h3>
+                                    <div class="camera-status">
+                                        <div id="camera2StatusDot" class="status-dot status-offline"></div>
+                                        <span id="camera2StatusText" class="status-text">초기화중</span>
+                                        <div class="camera-info">
+                                            <span id="camera2Resolution" class="resolution-info">640x480</span>
+                                            <span id="camera2Fps" class="fps-info">30fps</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-content video-content">
+                                <div class="video-container">
+                                    <div id="camera2Placeholder" class="camera-placeholder">
+                                        <div class="placeholder-content">
+                                            <i data-lucide="camera" class="placeholder-icon"></i>
+                                            <p class="placeholder-text">카메라 2</p>
+                                            <p class="placeholder-subtext">준비 중...</p>
+                                        </div>
+                                    </div>
+                                    <img id="videoStream2" 
+                                         src="" 
+                                         alt="Live Video Stream Camera 2"
+                                         style="display: none;"
+                                         onerror="handleStreamError(2)">
+                                    <div id="streamError2" class="stream-error" style="display: none;">
+                                        <div class="error-content">
+                                            <i data-lucide="camera-off" class="error-icon"></i>
+                                            <p>카메라 2 스트림을 불러올 수 없습니다</p>
+                                            <button class="btn btn-outline" onclick="retryStream(2)">다시 시도</button>
+                                        </div>
+                                    </div>
+                                    <button class="fullscreen-btn" onclick="openFullscreen(2)" title="전체화면">
+                                        <i data-lucide="maximize" class="fullscreen-icon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 카메라 2 제어 위젯 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i data-lucide="circle" class="title-icon text-red"></i>
+                                    녹화 제어
+                                </h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="controls-grid">
+                                    <button id="recordBtn2" class="btn btn-primary btn-large" onclick="toggleRecording(2)">
+                                        <i data-lucide="video" class="btn-icon"></i>
+                                        녹화 시작
+                                        <span class="keyboard-hint">Ctrl+2</span>
+                                    </button>
+                                    <button id="snapshotBtn2" class="btn btn-outline btn-large" onclick="captureSnapshot(2)">
+                                        <i data-lucide="image" class="btn-icon"></i>
+                                        스냅샷
+                                        <span class="keyboard-hint">Ctrl+Shift+2</span>
+                                    </button>
+                                    <div id="recordingStatus2" class="recording-status-card" style="display: none;">
+                                        <div class="status-content">
+                                            <i data-lucide="circle" class="pulse-dot"></i>
+                                            <span>녹화 진행 중</span>
+                                            <span id="recordingDuration2" class="recording-duration">00:00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 카메라 2 동영상 파일 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i data-lucide="video" class="title-icon text-blue"></i>
+                                    동영상 파일
+                                </h3>
+                            </div>
+                            <div class="card-content">
+                                <div id="videoFilesList2" class="files-container">
+                                    <!-- 카메라 2 동영상 파일 목록 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 카메라 2 이미지 파일 -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i data-lucide="image" class="title-icon text-green"></i>
+                                    이미지 파일
+                                </h3>
+                            </div>
+                            <div class="card-content">
+                                <div id="imageFilesList2" class="files-container">
+                                    <!-- 카메라 2 이미지 파일 목록 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
+    <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
+    
+    <!-- 전체 제어 패널 (플로팅) -->
+    <div id="globalControls" class="global-controls">
+        <div class="global-controls-header">
+            <span class="global-controls-title">🎬 전체 제어</span>
+            <button class="global-controls-toggle" onclick="toggleGlobalControls()">
+                <i data-lucide="chevron-up" class="toggle-icon"></i>
+            </button>
+        </div>
+        <div class="global-controls-content">
+            <button class="btn btn-primary" onclick="toggleAllRecording()" title="Ctrl+A">
+                <i data-lucide="video" class="btn-icon"></i>
+                모든 카메라 녹화
+            </button>
+            <button class="btn btn-outline" onclick="captureAllSnapshots()" title="Ctrl+Shift+A">
+                <i data-lucide="camera" class="btn-icon"></i>
+                모든 카메라 스냅샷
+            </button>
+            <button class="btn btn-outline" onclick="refreshAllFileLists()" title="Ctrl+L">
+                <i data-lucide="refresh-cw" class="btn-icon"></i>
+                파일 새로고침
+            </button>
+        </div>
+    </div>
+
+    <!-- Fullscreen Modal -->
+    <div id="fullscreenModal" class="fullscreen-modal" style="display: none;">
+        <div class="fullscreen-content">
+            <button class="fullscreen-close" onclick="closeFullscreen()" title="닫기">
+                <i data-lucide="x" class="close-icon"></i>
+            </button>
+            <img id="fullscreenVideo" src="" alt="Fullscreen Video">
+        </div>
+    </div>
 
     <script src="/frontend/script.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
 </body>
 </html>
