@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# UV
+uv.lock
+.uv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project specific
+static/videos/*.mp4
+static/videos/*.avi
+static/videos/*.h264
+static/images/*.jpg
+static/images/*.png
+static/images/*.jpeg
+
+# Keep directories but ignore contents
+static/videos/.gitkeep
+static/images/.gitkeep
+
+# Test files
+test_*.jpg
+test_*.mp4
+opencv_test_*.jpg
+picamera2_test_*.jpg
+
+# Logs
+*.log
+logs/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+~*
+
+# Configuration with secrets (if any)
+config.local.py
+secrets.json
+.env.local
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
