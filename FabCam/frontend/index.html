@@ -3,62 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabcam CCTV System</title>
-    <link rel="stylesheet" href="/frontend/style.css">
+    <title>Fabcam CCTV - 보안 모니터링 시스템</title>
+    
+    <!-- 캐시 방지 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <link rel="stylesheet" href="/frontend/style.css?v=2.0">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>📹 Fabcam CCTV System</h1>
-            <div class="status-indicator">
-                <span id="connectionStatus" class="status-connected">연결됨</span>
-                <span id="recordingStatus" class="recording-status">●</span>
+        <!-- Header -->
+        <div class="header">
+            <h1 class="title">Fabcam CCTV</h1>
+            <div class="status-badge online">
+                <div class="status-dot"></div>
+                시스템 온라인
             </div>
-        </header>
+        </div>
 
-        <main>
-            <div class="video-section">
-                <div class="video-container">
-                    <img id="videoStream" 
-                         src="/video_feed" 
-                         alt="Live Video Stream"
-                         onerror="handleStreamError()">
-                    <div id="streamError" class="stream-error" style="display: none;">
-                        <p>카메라 스트림을 불러올 수 없습니다</p>
-                        <button onclick="retryStream()">다시 시도</button>
+        <!-- Camera Grid -->
+        <div class="camera-grid">
+            <!-- Camera 1 (Backend Camera 0) -->
+            <div class="camera-card">
+                <div class="camera-header">
+                    <h3>카메라 1</h3>
+                    <div id="camera0-status" class="camera-status">
+                        <div class="status-dot offline"></div>
+                        연결 대기중
                     </div>
                 </div>
-                
-                <div class="controls">
-                    <button id="recordBtn" class="btn btn-record" onclick="toggleRecording()">
-                        📹 녹화 시작
-                    </button>
-                    <button id="snapshotBtn" class="btn btn-snapshot" onclick="captureSnapshot()">
-                        📸 스냅샷
-                    </button>
-                    <button id="refreshBtn" class="btn btn-refresh" onclick="refreshFileList()">
-                        🔄 새로고침
-                    </button>
+                <div class="video-container">
+                    <img id="camera0-stream" 
+                         alt="Camera 1 Stream"
+                         style="display: none;">
+                    <div id="camera0-overlay" class="video-overlay">
+                        <div class="camera-icon">📹</div>
+                        <p>카메라 연결 없음</p>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button id="camera0-record-btn" class="btn btn-primary" onclick="toggleContinuousRecording(0)">녹화 시작</button>
+                    <button class="btn btn-secondary" onclick="stopCamera(0)">스트림 중단</button>
+                    <div class="capture-group">
+                        <select id="camera0-resolution" class="resolution-select">
+                            <option value="vga">640×480</option>
+                            <option value="hd" selected>1280×720</option>
+                            <option value="fhd">1920×1080</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="captureSnapshot(0)">캡처</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="files-section">
-                <h2>저장된 파일</h2>
-                <div class="file-tabs">
-                    <button class="tab-btn active" onclick="showFiles('all')">전체</button>
-                    <button class="tab-btn" onclick="showFiles('video')">동영상</button>
-                    <button class="tab-btn" onclick="showFiles('image')">이미지</button>
+            <!-- Camera 2 (Backend Camera 1) -->
+            <div class="camera-card">
+                <div class="camera-header">
+                    <h3>카메라 2</h3>
+                    <div id="camera1-status" class="camera-status">
+                        <div class="status-dot offline"></div>
+                        연결 대기중
+                    </div>
                 </div>
-                
-                <div id="filesList" class="files-list">
-                    <!-- 파일 목록이 여기에 동적으로 로드됩니다 -->
+                <div class="video-container">
+                    <img id="camera1-stream"
+                         alt="Camera 2 Stream"
+                         style="display: none;">
+                    <div id="camera1-overlay" class="video-overlay">
+                        <div class="camera-icon">📹</div>
+                        <p>카메라 연결 없음</p>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button id="camera1-record-btn" class="btn btn-primary" onclick="toggleContinuousRecording(1)">녹화 시작</button>
+                    <button class="btn btn-secondary" onclick="stopCamera(1)">스트림 중단</button>
+                    <div class="capture-group">
+                        <select id="camera1-resolution" class="resolution-select">
+                            <option value="vga">640×480</option>
+                            <option value="hd" selected>1280×720</option>
+                            <option value="fhd">1920×1080</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="captureSnapshot(1)">캡처</button>
+                    </div>
                 </div>
             </div>
-        </main>
+        </div>
+
+        <!-- Bottom Grid -->
+        <div class="bottom-grid">
+            <!-- Recording Controls -->
+            <div class="control-card">
+                <div class="card-header">
+                    <h3>녹화 제어</h3>
+                </div>
+                <div class="recording-controls">
+                    <button id="recordBtn" class="btn-record" onclick="toggleRecording()">
+                        <span class="record-icon">⏺</span>
+                        녹화 시작
+                    </button>
+                </div>
+                <div class="recording-info">
+                    <span id="recordingStatus" class="recording-status">대기중</span>
+                    <span id="recordingTime" class="recording-time">00:00</span>
+                </div>
+                <div class="settings">
+                    <label>
+                        해상도:
+                        <select id="resolution">
+                            <option value="1920x1080">1920x1080</option>
+                            <option value="1280x720">1280x720</option>
+                            <option value="640x480">640x480</option>
+                        </select>
+                    </label>
+                    <label>
+                        품질:
+                        <select id="quality">
+                            <option value="high">높음</option>
+                            <option value="medium" selected>보통</option>
+                            <option value="low">낮음</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Video Files -->
+            <div class="file-card">
+                <div class="card-header">
+                    <h3>동영상 파일</h3>
+                    <span id="videoCount" class="file-count">0개</span>
+                </div>
+                <div id="videoList" class="file-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">🎥</div>
+                        <p>녹화된 동영상이 없습니다</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Files -->
+            <div class="file-card">
+                <div class="card-header">
+                    <h3>이미지 파일</h3>
+                    <span id="imageCount" class="file-count">0개</span>
+                </div>
+                <div id="imageList" class="file-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">📷</div>
+                        <p>캡처된 이미지가 없습니다</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="toast" class="toast"></div>
 
-    <script src="/frontend/script.js"></script>
+    <script src="/frontend/script.js?v=2.0"></script>
 </body>
 </html>

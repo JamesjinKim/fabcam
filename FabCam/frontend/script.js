@@ -1,273 +1,477 @@
-// 전역 변수
-let isRecording = false;
-let currentFilter = 'all';
-let recordingStartTime = null;
-
-// DOM 요소
-const videoStream = document.getElementById('videoStream');
-const streamError = document.getElementById('streamError');
-const recordBtn = document.getElementById('recordBtn');
-const recordingStatus = document.getElementById('recordingStatus');
-const connectionStatus = document.getElementById('connectionStatus');
-const filesList = document.getElementById('filesList');
-
-// 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Fabcam CCTV System 초기화 중...');
-    
-    // 비디오 스트림 설정
-    setupVideoStream();
-    
-    // 파일 목록 로드
-    refreshFileList();
-    
-    // 녹화 상태 확인
-    checkRecordingStatus();
-    
-    // 주기적으로 상태 확인 (5초마다)
-    setInterval(checkRecordingStatus, 5000);
-    
-    console.log('초기화 완료');
-});
-
-// 비디오 스트림 설정
-function setupVideoStream() {
-    videoStream.onload = function() {
-        console.log('비디오 스트림 연결됨');
-        streamError.style.display = 'none';
-        videoStream.style.display = 'block';
-        updateConnectionStatus(true);
-    };
-    
-    videoStream.onerror = function() {
-        console.log('비디오 스트림 오류');
-        handleStreamError();
-    };
-}
-
-// 스트림 오류 처리
-function handleStreamError() {
-    console.log('스트림 오류 처리 중...');
-    videoStream.style.display = 'none';
-    streamError.style.display = 'flex';
-    updateConnectionStatus(false);
-}
-
-// 스트림 재시도
-function retryStream() {
-    console.log('스트림 재시도 중...');
-    const timestamp = new Date().getTime();
-    videoStream.src = `/video_feed?t=${timestamp}`;
-    streamError.style.display = 'none';
-    videoStream.style.display = 'block';
-}
-
-// 연결 상태 업데이트
-function updateConnectionStatus(connected) {
-    if (connected) {
-        connectionStatus.textContent = '연결됨';
-        connectionStatus.className = 'status-connected';
-    } else {
-        connectionStatus.textContent = '연결 안됨';
-        connectionStatus.className = 'status-disconnected';
+class CCTVSystem {
+  constructor() {
+    this.cameras = {
+      0: { stream: null, recording: false, backendId: 0 }, // Frontend Camera 1 → Backend 0
+      1: { stream: null, recording: false, backendId: 1 }, // Frontend Camera 2 → Backend 1
     }
-}
+    this.mediaRecorders = {}
+    this.recordingStartTime = null
+    this.recordingTimer = null
+    this.videoFiles = []
+    this.imageFiles = []
 
-// 녹화 토글
-async function toggleRecording() {
-    console.log('녹화 토글:', isRecording ? '정지' : '시작');
+    this.init()
+  }
+
+  init() {
+    this.updateFileCounts()
+    this.loadSavedFiles()
+    this.setupCameraStreams()
     
+    // 스트림 우선 모드: 자동으로 스트림 시작
+    setTimeout(() => {
+      console.log('📺 스트림 우선 모드: 자동 스트림 시작...');
+      this.autoConnectCameras();
+    }, 2000);
+  }
+  
+  showTestModeIndicator() {
+    // 페이지 상단에 테스트 모드 표시
+    const header = document.querySelector('.header');
+    if (header) {
+      const testBanner = document.createElement('div');
+      testBanner.style.cssText = `
+        background: #ff6b35; 
+        color: white; 
+        text-align: center; 
+        padding: 8px; 
+        font-weight: bold;
+        margin-bottom: 10px;
+        border-radius: 4px;
+      `;
+      testBanner.textContent = '🚀 30 FPS 테스트 모드 (포트 8001)';
+      header.insertAdjacentElement('afterend', testBanner);
+    }
+  }
+  
+  async autoConnectCameras() {
     try {
-        recordBtn.disabled = true;
-        
-        if (isRecording) {
-            // 녹화 정지
-            const response = await fetch('/api/recording/stop', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                showToast('녹화가 정지되었습니다', 'success');
-                updateRecordingUI(false);
-                refreshFileList();
-            } else {
-                throw new Error('녹화 정지 실패');
-            }
-        } else {
-            // 녹화 시작
-            const response = await fetch('/api/recording/start', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                showToast(`녹화가 시작되었습니다: ${data.data.filename}`, 'success');
-                updateRecordingUI(true);
-            } else {
-                throw new Error('녹화 시작 실패');
-            }
-        }
+      console.log('🚀 카메라 1 자동 연결 시도 (30 FPS)...');
+      await this.startCamera(0);
+      
+      setTimeout(async () => {
+        console.log('🚀 카메라 2 자동 연결 시도 (30 FPS)...');
+        await this.startCamera(1);
+      }, 1000);
     } catch (error) {
-        console.error('녹화 토글 오류:', error);
-        showToast('녹화 조작에 실패했습니다', 'error');
-    } finally {
-        recordBtn.disabled = false;
+      console.error('30 FPS 자동 연결 실패:', error);
     }
-}
+  }
 
-// 녹화 UI 업데이트
-function updateRecordingUI(recording) {
-    isRecording = recording;
+  setupCameraStreams() {
+    // 듀얼 카메라 상태 확인
+    console.log('🚀 30 FPS 듀얼 카메라 시스템 초기화 중...');
     
-    if (recording) {
-        recordBtn.textContent = '⏹️ 녹화 정지';
-        recordBtn.className = 'btn btn-record recording';
-        recordingStatus.className = 'recording-status recording';
-        recordingStartTime = new Date();
-    } else {
-        recordBtn.textContent = '📹 녹화 시작';
-        recordBtn.className = 'btn btn-record';
-        recordingStatus.className = 'recording-status';
-        recordingStartTime = null;
-    }
-}
+    fetch('/api/camera/status')
+      .then(response => response.json())
+      .then(data => {
+        console.log('🚀 초기 30 FPS 듀얼 카메라 상태:', data);
+        
+        // 테스트 모드 확인
+        if (data.test_mode) {
+          console.log('✅ 30 FPS 테스트 모드 확인됨');
+        }
+        
+        // 각 카메라 상태 표시
+        this.updateCameraStatus(1, data.camera0?.available || false, data.camera0?.fps || 0);
+        this.updateCameraStatus(2, data.camera1?.available || false, data.camera1?.fps || 0);
+        
+        console.log('🚀 30 FPS 듀얼 카메라 시스템 초기화 완료 - 연결 버튼을 클릭하여 카메라를 연결하세요');
+      })
+      .catch(error => {
+        console.error('30 FPS 듀얼 카메라 상태 확인 실패:', error);
+        console.log('🚀 30 FPS 듀얼 카메라 시스템 초기화 완료 - 연결 버튼을 클릭하여 카메라를 연결하세요');
+      });
+  }
 
-// 스냅샷 캡처
-async function captureSnapshot() {
-    console.log('스냅샷 캡처 중...');
+  updateCameraStatus(cameraId, available, fps = 0) {
+    const status = document.getElementById(`camera${cameraId}-status`);
+    if (!status) {
+      console.warn(`Status element not found for camera ${cameraId}`);
+      return;
+    }
+    
+    if (available) {
+      const fpsText = fps > 0 ? ` (${fps} FPS)` : '';
+      status.innerHTML = `<div class="status-dot"></div>사용 가능${fpsText}`;
+      status.className = 'camera-status';
+    } else {
+      status.innerHTML = '<div class="status-dot offline"></div>카메라 없음';
+      status.className = 'camera-status';
+    }
+  }
+
+  checkCameraStatus() {
+    // 카메라 1 스트림 상태 확인
+    const camera1Stream = document.getElementById('camera1-stream');
+    if (camera1Stream.complete && camera1Stream.naturalWidth > 0) {
+      // 이미지가 로드되었고 유효한 크기를 가지면 연결된 것으로 간주
+      if (!this.cameras[1].stream) {
+        this.handleStreamLoad(1);
+      }
+    }
+  }
+
+  handleStreamLoad(cameraId) {
+    const overlay = document.getElementById(`camera${cameraId}-overlay`);
+    const status = document.getElementById(`camera${cameraId}-status`);
+    
+    overlay.classList.add('hidden');
+    status.innerHTML = '<div class="status-dot"></div>연결됨 (30 FPS)';
+    status.className = 'camera-status online';
+    this.cameras[cameraId].stream = 'connected';
+    
+    console.log(`🚀 카메라 ${cameraId} 30 FPS 스트림 로드 성공`);
+  }
+
+  handleStreamError(cameraId) {
+    const stream = document.getElementById(`camera${cameraId}-stream`);
+    const overlay = document.getElementById(`camera${cameraId}-overlay`);
+    const status = document.getElementById(`camera${cameraId}-status`);
+
+    stream.style.display = 'none';
+    overlay.classList.remove('hidden');
+    
+    status.innerHTML = '<div class="status-dot offline"></div>30 FPS 연결 실패';
+    overlay.innerHTML = `
+      <div class="camera-icon">📹</div>
+      <p>카메라 ${cameraId} 30 FPS 연결에 실패했습니다</p>
+      <p style="font-size: 12px; margin-top: 8px;">• 카메라가 연결되었는지 확인하세요</p>
+      <p style="font-size: 12px;">• rpicam-vid가 설치되었는지 확인하세요</p>
+    `;
+    
+    status.className = 'camera-status';
+    this.cameras[cameraId].stream = null;
+  }
+
+  async startCamera(cameraId) {
+    const stream = document.getElementById(`camera${cameraId}-stream`);
+    const overlay = document.getElementById(`camera${cameraId}-overlay`);
+    const status = document.getElementById(`camera${cameraId}-status`);
+    const backendId = this.cameras[cameraId].backendId;
+
+    // 상태 업데이트
+    status.innerHTML = '<div class="status-dot"></div>30 FPS 연결 중...';
+    status.className = 'camera-status';
     
     try {
-        const snapshotBtn = document.getElementById('snapshotBtn');
-        snapshotBtn.disabled = true;
+      // Backend에 카메라 연결 요청
+      const response = await fetch(`/api/camera/${backendId}/connect`, {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`🚀 카메라 ${cameraId} (백엔드 ${backendId}) 30 FPS 연결 성공:`, data);
         
-        const response = await fetch('/api/snapshot', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
+        // MJPEG 스트림 연결
+        this.initializeMJPEGStream(cameraId, backendId);
+        
+        this.showToast(`카메라 ${cameraId} 30 FPS 연결 성공`, 'success');
+      } else {
+        throw new Error(`카메라 ${cameraId} 30 FPS 연결 실패`);
+      }
+    } catch (error) {
+      console.error(`카메라 ${cameraId} 30 FPS 연결 오류:`, error);
+      this.handleStreamError(cameraId);
+      this.showError(`카메라 ${cameraId} 30 FPS 연결에 실패했습니다`);
+    }
+  }
+
+  initializeMJPEGStream(cameraId, backendId) {
+    console.log(`🚀 30 FPS MJPEG 스트림 초기화: 카메라 ${cameraId} (백엔드 ${backendId})`);
+    const img = document.getElementById(`camera${cameraId}-stream`);
+    
+    // MJPEG 스트림 URL
+    const streamUrl = `/video_feed/${backendId}`;
+    console.log(`🚀 카메라 ${cameraId} 30 FPS 스트림 URL:`, streamUrl);
+    
+    // 이미지 이벤트 리스너
+    img.onload = () => {
+      console.log(`🚀 카메라 ${cameraId} 30 FPS MJPEG 스트림 로드 성공`);
+      this.handleStreamLoad(cameraId);
+    };
+    
+    img.onerror = (e) => {
+      console.error(`카메라 ${cameraId} 30 FPS MJPEG 스트림 로드 실패:`, e);
+      this.handleStreamError(cameraId);
+    };
+    
+    // MJPEG 스트림 설정
+    img.src = streamUrl;
+    img.style.display = 'block';
+  }
+
+  async stopCamera(cameraId) {
+    const img = document.getElementById(`camera${cameraId}-stream`);
+    const overlay = document.getElementById(`camera${cameraId}-overlay`);
+    const status = document.getElementById(`camera${cameraId}-status`);
+    const backendId = this.cameras[cameraId].backendId;
+
+    try {
+      // Backend에 카메라 연결 해제 요청
+      const response = await fetch(`/api/camera/${backendId}/disconnect`, {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        console.log(`🚀 카메라 ${cameraId} (백엔드 ${backendId}) 30 FPS 연결 해제 성공`);
+        this.showToast(`카메라 ${cameraId} 30 FPS 연결 해제`, 'info');
+      }
+    } catch (error) {
+      console.error(`카메라 ${cameraId} 30 FPS 연결 해제 오류:`, error);
+    }
+
+    // UI 업데이트
+    img.src = '';
+    img.style.display = 'none';
+    overlay.classList.remove('hidden');
+    status.innerHTML = '<div class="status-dot offline"></div>연결 대기중';
+    status.className = 'camera-status';
+    
+    this.cameras[cameraId].stream = null;
+    console.log(`🚀 카메라 ${cameraId} 30 FPS 스트림 중지됨`);
+  }
+
+  async captureSnapshot(cameraId) {
+    const backendId = this.cameras[cameraId].backendId;
+    
+    if (!this.cameras[cameraId].stream) {
+      this.showError(`카메라 ${cameraId}가 연결되지 않았습니다.`);
+      return;
+    }
+
+    // 선택된 해상도 가져오기
+    const resolutionSelect = document.getElementById(`camera${cameraId}-resolution`);
+    const resolution = resolutionSelect.value;
+    
+    const resolutionNames = {
+      'vga': '640×480',
+      'hd': '1280×720', 
+      'fhd': '1920×1080'
+    };
+
+    try {
+      const response = await fetch(`/api/snapshot/${backendId}?resolution=${resolution}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.showToast(`카메라 ${cameraId} 스냅샷 저장 (${resolutionNames[resolution]}): ${data.data.filename}`, 'success');
+        this.refreshFileList();
+      } else {
+        throw new Error('스냅샷 캡처 실패');
+      }
+    } catch (error) {
+      console.error('스냅샷 오류:', error);
+      this.showError('스냅샷 캡처에 실패했습니다');
+    }
+  }
+
+  async toggleRecording() {
+    const recordBtn = document.getElementById('recordBtn');
+    const recordingStatus = document.getElementById('recordingStatus');
+    
+    // 현재 녹화 상태 확인
+    const statusResponse = await fetch('/api/recording/status');
+    const status = await statusResponse.json();
+    
+    if (status.is_recording) {
+      // 녹화 중지
+      await this.stopRecording();
+    } else {
+      // 녹화 시작
+      await this.startRecording();
+    }
+  }
+
+  async startRecording() {
+    try {
+      const response = await fetch('/api/recording/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.showToast(`수동 녹화가 시작되었습니다 (1920×1080)`, 'success');
+        
+        // Update UI
+        Object.keys(this.cameras).forEach((id) => {
+          if (this.cameras[id].stream) {
+            this.cameras[id].recording = true;
+          }
         });
-        
-        if (response.ok) {
-            const data = await response.json();
-            showToast(`스냅샷이 저장되었습니다: ${data.data.filename}`, 'success');
-            refreshFileList();
-        } else {
-            throw new Error('스냅샷 캡처 실패');
-        }
-    } catch (error) {
-        console.error('스냅샷 오류:', error);
-        showToast('스냅샷 캡처에 실패했습니다', 'error');
-    } finally {
-        document.getElementById('snapshotBtn').disabled = false;
-    }
-}
 
-// 녹화 상태 확인
-async function checkRecordingStatus() {
+        this.recordingStartTime = Date.now();
+        this.startRecordingTimer();
+        this.updateRecordingUI(true);
+      } else {
+        throw new Error('수동 녹화 시작 실패');
+      }
+    } catch (error) {
+      console.error('수동 녹화 오류:', error);
+      this.showError('수동 녹화 시작 실패: ' + error.message);
+    }
+  }
+
+  async stopRecording() {
     try {
-        const response = await fetch('/api/recording/status');
-        if (response.ok) {
-            const data = await response.json();
-            if (data.is_recording !== isRecording) {
-                updateRecordingUI(data.is_recording);
-            }
+      const response = await fetch('/api/recording/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         }
-    } catch (error) {
-        console.error('녹화 상태 확인 오류:', error);
-    }
-}
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.showToast(`수동 녹화가 중지되었습니다: ${data.data.file_count}개 파일`, 'success');
+        
+        Object.keys(this.cameras).forEach((id) => {
+          this.cameras[id].recording = false;
+        });
 
-// 파일 목록 새로고침
-async function refreshFileList() {
-    console.log('파일 목록 새로고침 중...');
-    
+        this.stopRecordingTimer();
+        this.updateRecordingUI(false);
+        this.refreshFileList();
+      } else {
+        throw new Error('수동 녹화 정지 실패');
+      }
+    } catch (error) {
+      console.error('수동 녹화 정지 오류:', error);
+      this.showError('수동 녹화 정지에 실패했습니다');
+    }
+  }
+
+  startRecordingTimer() {
+    this.recordingTimer = setInterval(() => {
+      const elapsed = Date.now() - this.recordingStartTime;
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+
+      document.getElementById('recordingTime').textContent =
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }, 1000);
+  }
+
+  stopRecordingTimer() {
+    if (this.recordingTimer) {
+      clearInterval(this.recordingTimer);
+      this.recordingTimer = null;
+    }
+    document.getElementById('recordingTime').textContent = '00:00';
+  }
+
+  updateRecordingUI(isRecording) {
+    const recordBtn = document.getElementById('recordBtn');
+    const recordingStatus = document.getElementById('recordingStatus');
+
+    if (isRecording) {
+      recordBtn.innerHTML = '<span class="record-icon">⏹</span>30 FPS 녹화 중지';
+      recordBtn.classList.add('recording');
+      recordingStatus.textContent = '30 FPS 녹화 중';
+    } else {
+      recordBtn.innerHTML = '<span class="record-icon">⏺</span>30 FPS 녹화 시작';
+      recordBtn.classList.remove('recording');
+      recordingStatus.textContent = '대기중';
+    }
+  }
+
+  async refreshFileList() {
     try {
-        filesList.innerHTML = '<div class="loading">파일 목록을 불러오는 중...</div>';
-        
-        const response = await fetch('/api/files');
-        if (response.ok) {
-            const files = await response.json();
-            displayFiles(files);
-        } else {
-            throw new Error('파일 목록 로드 실패');
-        }
+      const response = await fetch('/api/files');
+      if (response.ok) {
+        const files = await response.json();
+        this.displayFiles(files);
+      } else {
+        throw new Error('파일 목록 로드 실패');
+      }
     } catch (error) {
-        console.error('파일 목록 오류:', error);
-        filesList.innerHTML = '<div class="empty-state"><p>파일 목록을 불러올 수 없습니다</p></div>';
-        showToast('파일 목록을 불러올 수 없습니다', 'error');
+      console.error('파일 목록 오류:', error);
+      this.showError('파일 목록을 불러올 수 없습니다');
     }
-}
+  }
 
-// 파일 목록 표시
-function displayFiles(files) {
-    if (!files || files.length === 0) {
-        filesList.innerHTML = '<div class="empty-state"><p>저장된 파일이 없습니다</p></div>';
-        return;
-    }
+  displayFiles(files) {
+    // 비디오 파일 표시
+    const videoList = document.getElementById('videoList');
+    const imageList = document.getElementById('imageList');
     
-    // 필터링
-    let filteredFiles = files;
-    if (currentFilter !== 'all') {
-        filteredFiles = files.filter(file => file.file_type === currentFilter);
-    }
+    const videoFiles = files.filter(file => file.file_type === 'video');
+    const imageFiles = files.filter(file => file.file_type === 'image');
     
-    if (filteredFiles.length === 0) {
-        filesList.innerHTML = '<div class="empty-state"><p>해당 유형의 파일이 없습니다</p></div>';
-        return;
-    }
+    this.updateVideoList(videoFiles);
+    this.updateImageList(imageFiles);
+    this.updateFileCounts(videoFiles.length, imageFiles.length);
+  }
+
+  updateVideoList(videoFiles) {
+    const videoList = document.getElementById('videoList');
     
-    const html = filteredFiles.map(file => {
-        const fileIcon = file.file_type === 'video' ? '🎬' : '📸';
-        const fileSize = formatFileSize(file.size);
-        const createdAt = formatDateTime(file.created_at);
-        
-        return `
-            <div class="file-item">
-                <div class="file-info">
-                    <div class="file-name">${fileIcon} ${file.filename}</div>
-                    <div class="file-meta">${fileSize} • ${createdAt}</div>
-                </div>
-                <div class="file-actions">
-                    <button class="btn btn-small btn-download" onclick="downloadFile('${file.file_type}s', '${file.filename}')">
-                        📥 다운로드
-                    </button>
-                    <button class="btn btn-small btn-delete" onclick="deleteFile('${file.file_type}s', '${file.filename}')">
-                        🗑️ 삭제
-                    </button>
-                </div>
+    if (videoFiles.length === 0) {
+      videoList.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🎥</div>
+          <p>30 FPS 녹화된 동영상이 없습니다</p>
+        </div>
+      `;
+    } else {
+      videoList.innerHTML = videoFiles
+        .map(file => `
+          <div class="file-item">
+            <div class="file-info">
+              <div class="file-name">${file.filename}</div>
+              <div class="file-meta">${this.formatFileSize(file.size)} • ${this.formatDateTime(file.created_at)}</div>
             </div>
-        `;
-    }).join('');
-    
-    filesList.innerHTML = html;
-}
+            <div class="file-actions">
+              <button class="btn btn-small btn-secondary" onclick="cctvSystem.downloadFile('videos', '${file.filename}')">다운로드</button>
+              <button class="btn btn-small btn-secondary" onclick="cctvSystem.deleteFile('videos', '${file.filename}')">삭제</button>
+            </div>
+          </div>
+        `)
+        .join('');
+    }
+  }
 
-// 파일 필터
-function showFiles(filter) {
-    currentFilter = filter;
+  updateImageList(imageFiles) {
+    const imageList = document.getElementById('imageList');
     
-    // 탭 버튼 활성화 상태 업데이트
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    refreshFileList();
-}
+    if (imageFiles.length === 0) {
+      imageList.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📷</div>
+          <p>30 FPS 캡처된 이미지가 없습니다</p>
+        </div>
+      `;
+    } else {
+      imageList.innerHTML = imageFiles
+        .map(file => `
+          <div class="file-item">
+            <div class="file-info">
+              <div class="file-name">${file.filename}</div>
+              <div class="file-meta">${this.formatFileSize(file.size)} • ${this.formatDateTime(file.created_at)}</div>
+            </div>
+            <div class="file-actions">
+              <button class="btn btn-small btn-secondary" onclick="cctvSystem.downloadFile('images', '${file.filename}')">다운로드</button>
+              <button class="btn btn-small btn-secondary" onclick="cctvSystem.deleteFile('images', '${file.filename}')">삭제</button>
+            </div>
+          </div>
+        `)
+        .join('');
+    }
+  }
 
-// 파일 다운로드
-function downloadFile(fileType, filename) {
-    console.log('파일 다운로드:', filename);
+  downloadFile(fileType, filename) {
+    console.log('30 FPS 파일 다운로드:', filename);
     const url = `/api/files/${fileType}/${filename}`;
     
-    // 새 창에서 다운로드 링크 열기
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
@@ -275,93 +479,157 @@ function downloadFile(fileType, filename) {
     link.click();
     document.body.removeChild(link);
     
-    showToast('파일 다운로드를 시작합니다', 'info');
-}
+    this.showToast('30 FPS 파일 다운로드를 시작합니다', 'info');
+  }
 
-// 파일 삭제
-async function deleteFile(fileType, filename) {
-    if (!confirm(`'${filename}' 파일을 삭제하시겠습니까?`)) {
-        return;
+  async deleteFile(fileType, filename) {
+    if (!confirm(`'${filename}' 30 FPS 파일을 삭제하시겠습니까?`)) {
+      return;
     }
     
-    console.log('파일 삭제:', filename);
+    console.log('30 FPS 파일 삭제:', filename);
     
     try {
-        const response = await fetch(`/api/files/${fileType}/${filename}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            showToast('파일이 삭제되었습니다', 'success');
-            refreshFileList();
-        } else {
-            throw new Error('파일 삭제 실패');
-        }
+      const response = await fetch(`/api/files/${fileType}/${filename}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        this.showToast('30 FPS 파일이 삭제되었습니다', 'success');
+        this.refreshFileList();
+      } else {
+        throw new Error('30 FPS 파일 삭제 실패');
+      }
     } catch (error) {
-        console.error('파일 삭제 오류:', error);
-        showToast('파일 삭제에 실패했습니다', 'error');
+      console.error('30 FPS 파일 삭제 오류:', error);
+      this.showError('30 FPS 파일 삭제에 실패했습니다');
     }
-}
+  }
 
-// 토스트 메시지 표시
-function showToast(message, type = 'info') {
+  updateFileCounts(videoCount = null, imageCount = null) {
+    if (videoCount !== null) {
+      document.getElementById('videoCount').textContent = `${videoCount}개`;
+    }
+    if (imageCount !== null) {
+      document.getElementById('imageCount').textContent = `${imageCount}개`;
+    }
+  }
+
+  showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.className = `toast ${type}`;
     
-    // 토스트 표시
     setTimeout(() => {
-        toast.classList.add('show');
+      toast.classList.add('show');
     }, 100);
     
-    // 3초 후 토스트 숨기기
     setTimeout(() => {
-        toast.classList.remove('show');
+      toast.classList.remove('show');
     }, 3100);
-}
+  }
 
-// 파일 크기 포맷팅
-function formatFileSize(bytes) {
+  showError(message) {
+    this.showToast(message, 'error');
+  }
+
+  formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
-    
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
 
-// 날짜/시간 포맷팅
-function formatDateTime(isoString) {
+  formatDateTime(isoString) {
     const date = new Date(isoString);
     return date.toLocaleString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
+  }
+
+  async toggleContinuousRecording(cameraId) {
+    const button = document.getElementById(`camera${cameraId}-record-btn`);
+    const backendId = this.cameras[cameraId].backendId;
+    
+    try {
+      // 현재 연속 녹화 상태 확인
+      const statusResponse = await fetch(`/api/camera/${backendId}/continuous_status`);
+      const status = await statusResponse.json();
+      
+      if (status.is_recording) {
+        // 연속 녹화 중지
+        const response = await fetch(`/api/camera/${backendId}/stop_continuous`, {
+          method: 'POST'
+        });
+        
+        if (response.ok) {
+          button.textContent = '녹화 시작';
+          button.className = 'btn btn-primary';
+          this.showToast(`카메라 ${cameraId + 1} 연속 녹화 중지, 스트림 재시작`, 'info');
+        }
+      } else {
+        // 연속 녹화 시작
+        const response = await fetch(`/api/camera/${backendId}/start_continuous`, {
+          method: 'POST'
+        });
+        
+        if (response.ok) {
+          button.textContent = '녹화 중지';
+          button.className = 'btn btn-secondary';
+          this.showToast(`카메라 ${cameraId + 1} 연속 녹화 시작 (1280×720, 30초 세그먼트)`, 'success');
+        }
+      }
+    } catch (error) {
+      console.error('연속 녹화 토글 오류:', error);
+      this.showError('연속 녹화 제어에 실패했습니다');
+    }
+  }
+
+  loadSavedFiles() {
+    // localStorage에서 파일 목록 로드 (기존 기능 유지)
+    // 실제 API에서 파일 목록을 가져오므로 여기서는 빈 구현
+  }
 }
 
-// 키보드 단축키
-document.addEventListener('keydown', function(event) {
-    if (event.ctrlKey || event.metaKey) {
-        switch(event.key) {
-            case 'r':
-                event.preventDefault();
-                toggleRecording();
-                break;
-            case 's':
-                event.preventDefault();
-                captureSnapshot();
-                break;
-            case 'l':
-                event.preventDefault();
-                refreshFileList();
-                break;
-        }
-    }
-});
+// 전역 함수들 (HTML onclick 핸들러용)
+let cctvSystem;
 
-console.log('Fabcam CCTV System 스크립트 로드 완료');
+function handleStreamLoad(cameraId) {
+  cctvSystem.handleStreamLoad(cameraId);
+}
+
+function handleStreamError(cameraId) {
+  cctvSystem.handleStreamError(cameraId);
+}
+
+function startCamera(cameraId) {
+  cctvSystem.startCamera(cameraId);
+}
+
+function stopCamera(cameraId) {
+  cctvSystem.stopCamera(cameraId);
+}
+
+function captureSnapshot(cameraId) {
+  cctvSystem.captureSnapshot(cameraId);
+}
+
+function toggleRecording() {
+  cctvSystem.toggleRecording();
+}
+
+function toggleContinuousRecording(cameraId) {
+  cctvSystem.toggleContinuousRecording(cameraId);
+}
+
+// 시스템 초기화
+document.addEventListener('DOMContentLoaded', () => {
+  cctvSystem = new CCTVSystem();
+  console.log('🚀 Fabcam CCTV System (30 FPS) 초기화 완료');
+});
