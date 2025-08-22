@@ -1,0 +1,92 @@
+/* UI 개선을 위한 추가 CSS 스타일 */
+
+/* 블랙박스 섹션 스타일링 */
+.blackbox-section {
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.blackbox-section h4 {
+    margin: 0 0 8px 0;
+    color: #4CAF50;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.blackbox-info {
+    display: block;
+    color: #888;
+    font-style: italic;
+    margin-top: 5px;
+    font-size: 11px;
+}
+
+/* 캡처 그룹 스타일링 */
+.capture-group {
+    border: 1px solid #2196F3;
+    border-radius: 6px;
+    padding: 10px;
+    background: rgba(33, 150, 243, 0.1);
+}
+
+.capture-group h4 {
+    margin: 0 0 8px 0;
+    color: #2196F3;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* 수동 녹화 카드 스타일 조정 */
+.control-card {
+    border: 2px dashed #FF9800;
+    background: rgba(255, 152, 0, 0.05);
+}
+
+.control-card .card-header h3 {
+    color: #FF9800;
+}
+
+.control-card .card-header small {
+    color: #888;
+    font-style: italic;
+    display: block;
+    margin-top: 3px;
+}
+
+/* 버튼 위험 스타일 */
+.btn-danger {
+    background-color: #f44336;
+    color: white;
+    border: 1px solid #d32f2f;
+}
+
+.btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+/* 카메라 컨트롤 레이아웃 개선 */
+.camera-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+    .blackbox-section,
+    .capture-group {
+        padding: 8px;
+    }
+    
+    .blackbox-section h4,
+    .capture-group h4 {
+        font-size: 12px;
+    }
+    
+    .blackbox-info {
+        font-size: 10px;
+    }
+}

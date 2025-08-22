@@ -374,11 +374,11 @@ class CCTVSystem {
     const recordingStatus = document.getElementById('recordingStatus');
 
     if (isRecording) {
-      recordBtn.innerHTML = '<span class="record-icon">⏹</span>30 FPS 녹화 중지';
+      recordBtn.innerHTML = '<span class="record-icon">⏹</span>긴 영상 중지';
       recordBtn.classList.add('recording');
-      recordingStatus.textContent = '30 FPS 녹화 중';
+      recordingStatus.textContent = '수동 녹화 중 (640×480)';
     } else {
-      recordBtn.innerHTML = '<span class="record-icon">⏺</span>30 FPS 녹화 시작';
+      recordBtn.innerHTML = '<span class="record-icon">⏺</span>긴 영상 녹화';
       recordBtn.classList.remove('recording');
       recordingStatus.textContent = '대기중';
     }
@@ -569,9 +569,9 @@ class CCTVSystem {
         });
         
         if (response.ok) {
-          button.textContent = '녹화 시작';
+          button.textContent = '●REC 시작';
           button.className = 'btn btn-primary';
-          this.showToast(`카메라 ${cameraId + 1} 연속 녹화 중지, 스트림 재시작`, 'info');
+          this.showToast(`카메라 ${cameraId + 1} 블랙박스 중지, 스트림 재시작`, 'info');
         }
       } else {
         // 연속 녹화 시작
@@ -580,9 +580,9 @@ class CCTVSystem {
         });
         
         if (response.ok) {
-          button.textContent = '녹화 중지';
-          button.className = 'btn btn-secondary';
-          this.showToast(`카메라 ${cameraId + 1} 연속 녹화 시작 (1280×720, 30초 세그먼트)`, 'success');
+          button.textContent = '⏹ 블랙박스 중지';
+          button.className = 'btn btn-danger';
+          this.showToast(`카메라 ${cameraId + 1} 블랙박스 시작 (640×480, 30초 세그먼트)`, 'success');
         }
       }
     } catch (error) {

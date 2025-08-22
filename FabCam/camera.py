@@ -70,7 +70,7 @@ class SharedStreamManager:
                 "--nopreview"
             ]
             
-            print(f"🎬 공유 스트림 시작 (카메라 {self.camera_num}): {' '.join(cmd)}")
+            print(f" 공유 스트림 시작 (카메라 {self.camera_num}): {' '.join(cmd)}")
             
             self.process = subprocess.Popen(
                 cmd,
@@ -124,7 +124,7 @@ class SharedStreamManager:
             self.camera_manager.continuous_recorders[self.camera_num].start_continuous_recording()
             self.continuous_was_recording = False
         
-        print(f"🛑 공유 스트림 중지 (카메라 {self.camera_num})")
+        print(f"공유 스트림 중지 (카메라 {self.camera_num})")
     
     def add_client(self) -> str:
         """클라이언트 추가 및 ID 반환"""

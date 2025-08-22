@@ -11,6 +11,7 @@
     <meta http-equiv="Expires" content="0">
     
     <link rel="stylesheet" href="/frontend/style.css?v=2.0">
+    <link rel="stylesheet" href="/frontend/ui-improvements.css?v=1.0">
 </head>
 <body>
     <div class="container">
@@ -44,15 +45,23 @@
                     </div>
                 </div>
                 <div class="camera-controls">
-                    <button id="camera0-record-btn" class="btn btn-primary" onclick="toggleContinuousRecording(0)">녹화 시작</button>
-                    <button class="btn btn-secondary" onclick="stopCamera(0)">스트림 중단</button>
+                    <!-- 블랙박스 녹화 섹션 -->
+                    <div class="blackbox-section">
+                        <h4>🔴 블랙박스 녹화</h4>
+                        <button id="camera0-record-btn" class="btn btn-primary" onclick="toggleContinuousRecording(0)">●REC 시작</button>
+                        <button class="btn btn-secondary" onclick="stopCamera(0)">📺 스트림 중지</button>
+                        <small class="blackbox-info">💾 30초 자동 분할 (640×480)</small>
+                    </div>
+                    
+                    <!-- 스냅샷 섹션 -->
                     <div class="capture-group">
+                        <h4>📸 스냅샷</h4>
                         <select id="camera0-resolution" class="resolution-select">
-                            <option value="vga">640×480</option>
-                            <option value="hd" selected>1280×720</option>
+                            <option value="vga" selected>640×480</option>
+                            <option value="hd">1280×720</option>
                             <option value="fhd">1920×1080</option>
                         </select>
-                        <button class="btn btn-secondary" onclick="captureSnapshot(0)">캡처</button>
+                        <button class="btn btn-secondary" onclick="captureSnapshot(0)">📷 캡처</button>
                     </div>
                 </div>
             </div>
@@ -76,15 +85,23 @@
                     </div>
                 </div>
                 <div class="camera-controls">
-                    <button id="camera1-record-btn" class="btn btn-primary" onclick="toggleContinuousRecording(1)">녹화 시작</button>
-                    <button class="btn btn-secondary" onclick="stopCamera(1)">스트림 중단</button>
+                    <!-- 블랙박스 녹화 섹션 -->
+                    <div class="blackbox-section">
+                        <h4>🔴 블랙박스 녹화</h4>
+                        <button id="camera1-record-btn" class="btn btn-primary" onclick="toggleContinuousRecording(1)">●REC 시작</button>
+                        <button class="btn btn-secondary" onclick="stopCamera(1)">📺 스트림 중지</button>
+                        <small class="blackbox-info">💾 30초 자동 분할 (640×480)</small>
+                    </div>
+                    
+                    <!-- 스냅샷 섹션 -->
                     <div class="capture-group">
+                        <h4>📸 스냅샷</h4>
                         <select id="camera1-resolution" class="resolution-select">
-                            <option value="vga">640×480</option>
-                            <option value="hd" selected>1280×720</option>
+                            <option value="vga" selected>640×480</option>
+                            <option value="hd">1280×720</option>
                             <option value="fhd">1920×1080</option>
                         </select>
-                        <button class="btn btn-secondary" onclick="captureSnapshot(1)">캡처</button>
+                        <button class="btn btn-secondary" onclick="captureSnapshot(1)">📷 캡처</button>
                     </div>
                 </div>
             </div>
@@ -92,15 +109,16 @@
 
         <!-- Bottom Grid -->
         <div class="bottom-grid">
-            <!-- Recording Controls -->
+            <!-- Manual Recording Controls (고급 기능) -->
             <div class="control-card">
                 <div class="card-header">
-                    <h3>녹화 제어</h3>
+                    <h3>🎦 수동 녹화 (고급 기능)</h3>
+                    <small>연속 파일로 긴 영상 녹화</small>
                 </div>
                 <div class="recording-controls">
                     <button id="recordBtn" class="btn-record" onclick="toggleRecording()">
                         <span class="record-icon">⏺</span>
-                        녹화 시작
+                        긴 영상 녹화
                     </button>
                 </div>
                 <div class="recording-info">
