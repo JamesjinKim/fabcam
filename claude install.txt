@@ -1,0 +1,18 @@
+1.
+sudo npm install -g @anthropic-ai/claude-code
+
+2.
+# npm 전역 설치 디렉토리를 홈 디렉토리로 변경
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+
+# ~/.bashrc 또는 ~/.zshrc에 PATH 추가
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# 이제 sudo 없이 설치 가능
+npm install -g @anthropic-ai/claude-code
+
+3.
+# nvm 설치 후 사용하면 권한 문제 없이 설치 가능
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
