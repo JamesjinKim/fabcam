@@ -56,9 +56,9 @@ class HandDetector:
         self.mp_hands = mp.solutions.hands
         self.mp_drawing = mp.solutions.drawing_utils
 
-        # MediaPipe 손 감지기 초기화
+        # MediaPipe 손 감지기 초기화 (static_image_mode=True로 timestamp 문제 방지)
         self.hands = self.mp_hands.Hands(
-            static_image_mode=False,  # 비디오 스트림 모드
+            static_image_mode=True,   # 정적 이미지 모드로 timestamp 문제 방지
             max_num_hands=max_num_hands,
             min_detection_confidence=min_detection_confidence,
             min_tracking_confidence=min_tracking_confidence
@@ -75,6 +75,10 @@ class HandDetector:
         self.processing_times = []
         self.stats_lock = threading.Lock()
 
+        # 프레임 제한 (MediaPipe timestamp 문제 방지)
+        self.last_process_time = 0
+        self.min_frame_interval = 0.1  # 최소 100ms 간격 (10fps 제한)
+
         logger.info(f"[HandDetector] 초기화 완료 (최대 {max_num_hands}개 손 감지)")
 
     def detect(self, frame: np.ndarray) -> List[HandDetection]:
@@ -90,11 +94,26 @@ class HandDetector:
         start_time = time.time()
         detections = []
 
-        # BGR을 RGB로 변환
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # 프레임 레이트 제한 (MediaPipe timestamp 문제 방지)
+        if start_time - self.last_process_time < self.min_frame_interval:
+            return detections
 
-        # MediaPipe 손 감지 실행
-        results = self.hands.process(rgb_frame)
+        self.last_process_time = start_time
+
+        try:
+            # BGR을 RGB로 변환
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # 프레임이 유효한지 확인
+            if rgb_frame is None or rgb_frame.size == 0:
+                return detections
+
+            # MediaPipe 손 감지 실행 (예외 처리 추가)
+            results = self.hands.process(rgb_frame)
+
+        except Exception as e:
+            logger.warning(f"[HandDetector] MediaPipe 처리 중 오류: {e}")
+            return detections
 
         if results.multi_hand_landmarks:
             h, w, _ = frame.shape
