@@ -414,8 +414,17 @@ async function updateAIStats() {
             // AI 통계 업데이트
             document.getElementById('ai-fps').textContent =
                 (detectorStats.inference_fps || 0).toFixed(1);
-            document.getElementById('npu-usage').textContent =
-                (detectorStats.npu_utilization || 0).toFixed(0) + '%';
+
+            // 감지 모드에 따른 처리 방식 표시
+            const isHandMode = detectorStats.detection_mode === 'hand';
+            const usageValue = isHandMode ?
+                (detectorStats.cpu_utilization || 0) :
+                (detectorStats.npu_utilization || 0);
+            const usageLabel = isHandMode ? 'CPU 사용률' : 'NPU 사용률';
+
+            document.getElementById('npu-usage').textContent = usageValue.toFixed(0) + '%';
+            document.getElementById('usage-label').textContent = usageLabel + ':';
+
             document.getElementById('total-detections').textContent =
                 stats.total_detections || 0;
 

@@ -861,12 +861,24 @@ class CameraManager:
         detector_stats = self.ai_detector.get_stats() if self.ai_detector else {}
         notification_stats = self.notification_system.get_stats()
 
+        # 감지 모드에 따른 NPU 사용률 계산
+        npu_utilization = 0
+        if hasattr(self, 'detection_mode'):
+            if self.detection_mode == 'general' and detector_stats:
+                npu_utilization = detector_stats.get('npu_utilization', 0)
+            elif self.detection_mode == 'hand':
+                npu_utilization = 0  # HandDetector는 NPU 미사용
+
         return {
             "enabled": True,
             "total_detections": self.ai_stats['total_detections'],
             "detection_rate": self.ai_stats['detection_rate'],
             "last_detection_time": self.ai_stats['last_detection_time'],
-            "detector_stats": detector_stats,
+            "detector_stats": {
+                **detector_stats,
+                "npu_utilization": npu_utilization,
+                "detection_mode": getattr(self, 'detection_mode', 'unknown')
+            },
             "notification_stats": notification_stats,
             "camera_detections": {
                 cam_id: stats.get("ai_detections", 0)

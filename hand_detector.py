@@ -181,7 +181,14 @@ class HandDetector:
     def get_stats(self) -> Dict[str, Any]:
         """통계 정보 반환"""
         with self.stats_lock:
-            return self.stats.copy()
+            stats = self.stats.copy()
+
+            # JavaScript가 기대하는 형식으로 확장
+            stats['inference_fps'] = 1.0 / stats['avg_processing_time'] if stats['avg_processing_time'] > 0 else 0.0
+            stats['npu_utilization'] = 0  # HandDetector는 NPU를 사용하지 않음 (CPU 사용)
+            stats['cpu_utilization'] = min(stats['inference_fps'] * 5, 100)  # 추정 CPU 사용률
+
+            return stats
 
     def start_detection(self):
         """감지 시작 (호환성을 위한 메서드)"""
