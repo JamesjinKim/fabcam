@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv*/
+ENV/
+env/
+.venv
+
+# Virtual Environment
+venv_fabcam/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+hailort.log
+
+# Videos and Media
+videos/
+*.mp4
+*.avi
+*.mov
+*.mkv
+snapshots/
+
+# Model files (large binary)
+models/*.hef
+models/*.onnx
+models/*.pb
+
+# Events
+events/
+
+# Hailo examples (submodule)
+hailo-rpi5-examples/
+
+# Config backups
+*.backup
+*.bak
+
+# Test files
+test_*.py
+reference/
+
+# Temporary files
+*.tmp
+temp/
+tmp/

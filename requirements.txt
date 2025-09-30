@@ -1,0 +1,59 @@
+# SHT 듀얼 LIVE 카메라 + Hailo AI 통합 시스템
+# 라즈베리파이 5 + Hailo-8L NPU 기반 AI CCTV 시스템
+
+# Web Framework & API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Computer Vision & AI
+numpy==1.24.3
+opencv-python==4.8.1.78
+pillow==10.0.1
+
+# System & Performance Monitoring
+psutil==5.9.6
+
+# HTTP Requests (for testing)
+requests==2.31.0
+
+# Image Processing & Encoding
+imageio==2.31.5
+
+# Additional utilities
+pathlib2==2.3.7
+
+# Development & Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# =============================================================================
+# 시스템 패키지 (별도 설치 필요)
+# =============================================================================
+#
+# Raspberry Pi Camera:
+#   sudo apt install python3-picamera2 python3-libcamera
+#
+# FFmpeg:
+#   sudo apt install ffmpeg
+#
+# Hailo AI Kit:
+#   hailo-all package (includes HailoRT 4.20.0, hailo-tappas-core 3.31.0)
+#   Installation: https://github.com/hailo-ai/hailo-rpi5-examples
+#
+# =============================================================================
+# 설치 명령어
+# =============================================================================
+#
+# 1. 가상환경 생성 및 활성화:
+#    python3 -m venv venv_fabcam --system-site-packages
+#    source venv_fabcam/bin/activate
+#
+# 2. Python 패키지 설치:
+#    pip install -r requirements.txt
+#
+# 3. 시스템 패키지 설치:
+#    sudo apt update
+#    sudo apt install -y python3-picamera2 python3-libcamera ffmpeg
+#
+# 4. Hailo AI Kit 설치 (선택사항):
+#    https://github.com/hailo-ai/hailo-rpi5-examples 참조

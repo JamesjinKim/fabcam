@@ -1,0 +1,179 @@
+✅ 현재 구현된 기능 확인
+
+  🔄 실행 흐름 (요구사항에 맞게 완성됨)
+
+  1. 시작: python3 webmain.py
+  2. 초기화: CameraManager → 스트리밍만 시작 ✅
+  3. 녹화 시작: 2가지 방법으로 선택적 제어 ✅
+    - (1) 웹 UI 우선: 녹화 버튼으로 30초 저장 ✅
+    - (2) 자동 연속: webmain.py 624행 주석 해제 시 연속 녹화 ✅
+  4. 웹 서버: 포트 8001에서 CCTV 웹 인터페이스 제공 ✅
+  5. 스트리밍: MJPEG 스트림 + 선택적 녹화 동시 진행 ✅
+  6. 종료: Ctrl+C → 녹화 중지 → 카메라 정리 → 안전 종료 ✅
+
+  🎯 구현된 핵심 기능
+
+  웹 UI (HTML):
+  - 녹화 버튼: "카메라0 녹화(30초)", "카메라1 녹화(30초)" ✅
+  - 녹화 상태 표시: "카메라 0 녹화: 대기/녹화 중" ✅
+
+  JavaScript 기능:
+  - toggleRecording(cameraId): 녹화 시작/중지 토글 ✅
+  - 실시간 녹화 상태 모니터링 ✅
+  - 녹화 중 "REC" 상태 표시 ✅
+
+  웹 API:
+  - /api/recording/start/{camera_id}: 30초 녹화 시작 ✅
+  - /api/recording/stop/{camera_id}: 녹화 중지 ✅
+  - /api/recording/status: 녹화 상태 조회 ✅
+
+  webmain.py:
+  - 자동 연속 녹화 주석 처리 (선택적) ✅
+  - 30초 단위 녹화 지원 ✅
+  - 스트리밍 중단 없이 녹화 ✅
+
+[cliet Web] -- [cliet Web] --[cliet Web] --[cliet Web] -- [cliet Web]
+                              |
+                            [HUB]
+                              |
+---------------       ---------------      ---------------
+[라즈베리파이5 0]  ---- [라즈베리파이5 1]  ---- [라즈베리파이5 2] --- [NAS(영상 mp4 저장 후 user 스트리밍, 탐색)] 
+---------------       ---------------      ---------------
+
+
+
+# 수정 방향
+  def stop_camera_stream(self, camera_id: int):
+      # 스트리밍만 중지, 녹화는 유지
+      # 연속 녹화는 enable_recording()/disable_recording()에서만 제어
+
+  4. 리소스 공유 최적화
+
+  - Picamera2 인스턴스: 공유 유지
+  - 스트리밍: lores 스트림 사용
+  - 녹화: main 스트림 사용 (GPU H.264)
+  - 독립 운영: 서로 간섭 없이 동시 작동
+
+  5. 구체적 수정 포인트
+
+  A. webmain.py:327 라인
+  # 제거: self.recorders[camera_id].stop_recording()
+  # 추가: 스트리밍 관련 정리만
+
+  B. 연속 녹화 생명주기
+  시작: main() → enable_recording()
+  유지: 웹 접속/해제와 무관하게 지속
+  중지: shutdown() 또는 명시적 disable_recording()만
+
+  C. 듀얼 모드 전환
+  # disable_dual_mode()에서 녹화 유지
+  # 카메라 전환만 수행, 녹화는 지속
+
+  🎯 기대 효과
+
+  ✅ 24시간 연속 녹화 보장✅ 웹 스트리밍 독립성 확보✅ 시스템 안정성 향상✅ 리소스 효율성 유지
+  
+
+
+  ● NPU vs GPU vs CPU - 독립적인 처리 유닛
+
+  하드웨어 아키텍처 차이
+
+  NPU (Neural Processing Unit)
+  - 독립 칩: Hailo-8은 별도 M.2/PCIe 카드로 장착
+  - 전용 회로: AI 연산(행렬곱, 컨볼루션)에 특화된 ASIC
+  - 메모리: 자체 온칩 메모리 (Hailo-8: 32MB SRAM)
+  - 병렬성: 수천 개 MAC(Multiply-Accumulate) 유닛
+
+  GPU (라즈베리파이 5 - VideoCore VII)
+  - 통합형: BCM2712 SoC 내부에 포함
+  - 범용 병렬: 그래픽 + 비디오 인코딩/디코딩
+  - 메모리: 시스템 RAM 공유 (GPU 메모리 스플릿)
+  - 용도: H.264 인코딩, 이미지 처리, OpenGL
+
+  CPU (Cortex-A76 × 4)
+  - 중앙 처리: 범용 연산, 시스템 제어
+  - 순차 처리: 복잡한 로직, 분기 처리
+  - 메모리: L1/L2/L3 캐시 + 시스템 RAM
+  - 용도: 애플리케이션 로직, I/O 제어
+
+  상호 연관성과 데이터 흐름
+
+  [카메라] → [CPU: 캡처] → [GPU: 전처리/인코딩] → [NPU: AI 추론]
+                  ↓                    ↓                    ↓
+             [시스템 제어]      [H.264 스트리밍]     [객체 감지]
+
+  실제 작업 분담 예시
+
+  현재 fabcam (NPU 없음)
+  # CPU: 10-15% - FastAPI 서버, 로직 처리
+  # GPU: 20-30% - H.264 인코딩, MJPEG 변환
+  # NPU: 0% - 사용 안 함
+
+  Hailo 추가 후
+  # CPU: 15-20% - 전처리, 후처리, 바운딩박스 그리기
+  # GPU: 20-30% - 동일 (비디오 인코딩)
+  # NPU: 60-80% - YOLO11 추론 전담
+
+  병목 현상과 밸런싱
+
+  독립 동작 (좋은 경우)
+  - NPU가 AI 추론하는 동안 GPU는 계속 비디오 인코딩
+  - CPU는 네트워크 I/O와 전체 조율만 담당
+  - 각자 역할이 분리되어 효율적
+
+  데이터 전송 병목 (주의할 점)
+  # 비효율적 - CPU가 중간 다리 역할
+  Frame → CPU → NPU → CPU → GPU
+
+  # 효율적 - Zero-copy, DMA 활용
+  Frame → Shared Memory → NPU/GPU 동시 접근
+
+  실제 코드에서의 최적화
+
+  class OptimizedPipeline:
+      def __init__(self):
+          # 각 처리기 독립 초기화
+          self.npu = HailoRT()  # NPU - AI 추론
+          self.gpu_encoder = H264Encoder()  # GPU - 비디오
+          self.cpu_pool = ThreadPool(2)  # CPU - 제어
+
+      async def process_frame(self, frame):
+          # 병렬 처리 - 서로 간섭 없음
+          tasks = [
+              self.gpu_encoder.encode(frame),  # GPU 작업
+              self.npu.detect(frame),          # NPU 작업
+          ]
+          # CPU는 조율만
+          results = await asyncio.gather(*tasks)
+          return results
+
+  성능 모니터링 명령
+
+  # CPU 사용률
+  htop 또는 top
+
+  # GPU 사용률 (VideoCore)
+  vcgencmd measure_clock v3d
+  vcgencmd measure_temp
+
+  # NPU 사용률 (Hailo)
+  hailortcli monitor  # 실시간 NPU 통계
+  hailortcli power-measurement  # 전력 소비
+
+  # 통합 모니터링
+  python3 -c "
+  import psutil  # CPU
+  import subprocess  # GPU via vcgencmd
+  from hailo_platform import HailoRTStatusMonitor  # NPU
+  "
+
+  핵심 요약
+
+  - 물리적 독립: NPU는 별도 하드웨어, GPU/CPU와 자원 경쟁 없음
+  - 기능적 협업: 데이터는 공유하지만 연산은 독립 수행
+  - 병목 위험: 데이터 전송 경로 최적화 필요 (DMA, 공유 메모리)
+  - 최적 활용: CPU 15%, GPU 30%, NPU 70% = 전체 시스템 효율적 운영
+
+  NPU 추가는 기존 CPU/GPU 부하를 늘리지 않고 AI 기능을 추가하는 가장 효과적인
+   방법입니다.
