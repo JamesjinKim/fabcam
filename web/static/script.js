@@ -262,6 +262,13 @@ function updateStats() {
             const activeClients = data.active_clients || 0;
             const maxClients = data.max_clients || 1;
             document.getElementById('client-count').textContent = `${activeClients}/${maxClients}`;
+
+            // AI 감지 상태 간단 업데이트
+            if (data.ai_stats && data.ai_stats.enabled) {
+                document.getElementById('ai-status').textContent = '활성화';
+            } else {
+                document.getElementById('ai-status').textContent = '비활성화';
+            }
         })
         .catch(error => {
             console.error('[ERROR] 통계 조회 실패:', error);
@@ -355,19 +362,13 @@ async function toggleAIDetection() {
             updateAIButton();
 
             if (aiEnabled) {
-                // AI 통계 업데이트 시작
-                updateAIStats();
-                aiStatsInterval = setInterval(updateAIStats, 2000);
+                // 손 감지 모드 - 별도 통계 업데이트 불필요
             } else {
                 // AI 통계 업데이트 중지
                 if (aiStatsInterval) {
                     clearInterval(aiStatsInterval);
                     aiStatsInterval = null;
                 }
-                // AI 통계 초기화
-                document.getElementById('ai-fps').textContent = '0.0';
-                document.getElementById('npu-usage').textContent = '0%';
-                document.getElementById('total-detections').textContent = '0';
             }
 
             console.log(`[AI] AI 감지 ${aiEnabled ? '활성화' : '비활성화'}`);
@@ -389,79 +390,23 @@ function updateAIButton() {
     const statusSpan = document.getElementById('ai-status');
 
     if (aiEnabled) {
-        button.textContent = '🤖 AI 감지 비활성화';
+        button.textContent = '✋ 손 감지 비활성화';
         button.classList.add('active');
         statusSpan.textContent = '활성화';
         statusSpan.style.color = '#28a745';
     } else {
-        button.textContent = '🤖 AI 감지 활성화';
+        button.textContent = '✋ 손 감지 활성화';
         button.classList.remove('active');
         statusSpan.textContent = '비활성화';
         statusSpan.style.color = '#6c757d';
     }
 }
 
-// AI 통계 업데이트
+// AI 통계 업데이트 (손 감지 모드 - 간소화)
 async function updateAIStats() {
-    try {
-        const response = await fetch('/api/ai/stats');
-        const result = await response.json();
-
-        if (result.success && result.stats.enabled) {
-            const stats = result.stats;
-            const detectorStats = stats.detector_stats || {};
-
-            // AI 통계 업데이트
-            document.getElementById('ai-fps').textContent =
-                (detectorStats.inference_fps || 0).toFixed(1);
-
-            // 감지 모드에 따른 처리 방식 표시
-            const isHandMode = detectorStats.detection_mode === 'hand';
-            const usageValue = isHandMode ?
-                (detectorStats.cpu_utilization || 0) :
-                (detectorStats.npu_utilization || 0);
-            const usageLabel = isHandMode ? 'CPU 사용률' : 'NPU 사용률';
-
-            document.getElementById('npu-usage').textContent = usageValue.toFixed(0) + '%';
-            document.getElementById('usage-label').textContent = usageLabel + ':';
-
-            document.getElementById('total-detections').textContent =
-                stats.total_detections || 0;
-
-            // 전체 감지 수 업데이트
-            const totalDetections = Object.values(stats.camera_detections || {})
-                .reduce((sum, count) => sum + count, 0);
-            document.getElementById('ai-detections').textContent = totalDetections;
-        }
-    } catch (error) {
-        console.error('[AI] AI 통계 업데이트 오류:', error);
-    }
+    // 손 감지 모드에서는 복잡한 통계 표시하지 않음
+    // 기본 AI 상태만 updateStats()에서 처리
 }
-
-// updateStats 함수에 AI 상태 포함
-const originalUpdateStats = updateStats;
-updateStats = async function() {
-    await originalUpdateStats();
-
-    // AI 상태 업데이트
-    try {
-        const response = await fetch('/api/stats');
-        const data = await response.json();
-
-        if (data.ai_enabled !== undefined) {
-            aiEnabled = data.ai_enabled;
-            updateAIButton();
-
-            if (data.ai_stats && data.ai_stats.enabled) {
-                const totalDetections = Object.values(data.ai_stats.camera_detections || {})
-                    .reduce((sum, count) => sum + count, 0);
-                document.getElementById('ai-detections').textContent = totalDetections;
-            }
-        }
-    } catch (error) {
-        console.error('[AI] AI 상태 업데이트 오류:', error);
-    }
-};
 
 // 카메라 전환 (레거시 호환성)
 function switchCamera(cameraId) {
