@@ -214,15 +214,19 @@ class GPURecorder:
         # 현재 녹화 중이면 중지
         if self.is_recording and self.encoder:
             try:
+                # 단계적 종료로 헤더 손상 방지
+                self.is_recording = False  # 먼저 플래그 비활성화
+                time.sleep(0.1)  # 마지막 프레임 처리 시간 확보
+
+                # 인코더 정상 종료
                 self.picam2.stop_encoder(self.encoder)
-                self.is_recording = False
-                self.encoder = None  # 인코더 정리
+                self.encoder = None
                 self.current_output = None
                 logger.info(f"[GPU-RECORDER] 카메라 {self.camera_id} 녹화 중지")
             except Exception as e:
-                # 이미 중지된 경우 무시
+                # 이미 중지된 경우나 기타 오류 무시
                 if "already stopped" not in str(e).lower():
-                    logger.error(f"녹화 중지 오류: {e}")
+                    logger.warning(f"녹화 중지 중 경고: {e}")
                 self.is_recording = False
                 self.encoder = None
                 self.current_output = None
@@ -235,13 +239,14 @@ class GPURecorder:
         if self.current_file and self.current_file.exists():
             try:
                 file_size = self.current_file.stat().st_size
-                if file_size < 10240:  # 10KB 미만 파일은 삭제
+                # 더 관대한 임계값 (50KB 미만만 손상으로 간주)
+                if file_size < 51200:  # 50KB 미만 파일은 삭제
                     self.current_file.unlink()
-                    logger.info(f"[CAM{self.camera_id}] 손상된 파일 삭제: {self.current_file.name}")
+                    logger.info(f"[CAM{self.camera_id}] 손상된 파일 삭제: {self.current_file.name} ({file_size/1024:.1f}KB)")
                 else:
                     logger.info(f"[CAM{self.camera_id}] 마지막 파일 보존: {self.current_file.name} ({file_size/1024/1024:.1f}MB)")
             except Exception as e:
-                logger.error(f"파일 처리 오류: {e}")
+                logger.warning(f"파일 처리 중 경고: {e}")
 
 
 class CameraManager:
