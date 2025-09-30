@@ -876,8 +876,10 @@ class CameraManager:
                 # AI 감지 활성화
                 if not self.ai_detector:
                     self._init_ai_detection()
-                elif self.ai_detector:
-                    self.ai_detector.start_detection()
+                else:
+                    # 감지기 종류에 따라 다른 처리
+                    if hasattr(self.ai_detector, 'start_detection'):
+                        self.ai_detector.start_detection()
                     self.ai_enabled = True
 
                 logger.info("[AI] AI 감지 활성화됨")
@@ -886,7 +888,9 @@ class CameraManager:
             elif not enable and self.ai_enabled:
                 # AI 감지 비활성화
                 if self.ai_detector:
-                    self.ai_detector.stop_detection()
+                    # 감지기 종류에 따라 다른 처리
+                    if hasattr(self.ai_detector, 'stop_detection'):
+                        self.ai_detector.stop_detection()
                     self.ai_enabled = False
 
                 logger.info("[AI] AI 감지 비활성화됨")

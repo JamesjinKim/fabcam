@@ -183,6 +183,16 @@ class HandDetector:
         with self.stats_lock:
             return self.stats.copy()
 
+    def start_detection(self):
+        """감지 시작 (호환성을 위한 메서드)"""
+        # MediaPipe는 detect() 호출시마다 감지하므로 별도 시작 불필요
+        logger.info("[HandDetector] 감지 시작됨")
+
+    def stop_detection(self):
+        """감지 중지 (호환성을 위한 메서드)"""
+        # MediaPipe는 detect() 호출 중지로 감지 중지됨
+        logger.info("[HandDetector] 감지 중지됨")
+
     def close(self):
         """리소스 정리"""
         if hasattr(self, 'hands'):
