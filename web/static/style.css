@@ -491,30 +491,3 @@ p {
     background: linear-gradient(45deg, #00a085, #00b7c2);
 }
 
-.ai-stats {
-    margin-top: 10px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border: 1px solid #e9ecef;
-}
-
-.ai-stat {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-    font-size: 0.9em;
-}
-
-.ai-stat:last-child {
-    margin-bottom: 0;
-}
-
-.ai-stat strong {
-    color: #495057;
-}
-
-.ai-stat span {
-    color: #6c5ce7;
-    font-weight: bold;
-}

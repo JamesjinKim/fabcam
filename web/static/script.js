@@ -358,14 +358,16 @@ async function toggleAIDetection() {
                 // AI 통계 업데이트 시작
                 updateAIStats();
                 aiStatsInterval = setInterval(updateAIStats, 2000);
-                document.getElementById('ai-stats-panel').style.display = 'block';
             } else {
                 // AI 통계 업데이트 중지
                 if (aiStatsInterval) {
                     clearInterval(aiStatsInterval);
                     aiStatsInterval = null;
                 }
-                document.getElementById('ai-stats-panel').style.display = 'none';
+                // AI 통계 초기화
+                document.getElementById('ai-fps').textContent = '0.0';
+                document.getElementById('npu-usage').textContent = '0%';
+                document.getElementById('total-detections').textContent = '0';
             }
 
             console.log(`[AI] AI 감지 ${aiEnabled ? '활성화' : '비활성화'}`);

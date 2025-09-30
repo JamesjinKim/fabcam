@@ -45,6 +45,15 @@
                 <div class="status-item ai-status">
                     <strong>감지된 객체:</strong> <span id="ai-detections">0</span>
                 </div>
+                <div class="status-item ai-status">
+                    <strong>추론 FPS:</strong> <span id="ai-fps">0.0</span>
+                </div>
+                <div class="status-item ai-status">
+                    <strong>NPU 사용률:</strong> <span id="npu-usage">0%</span>
+                </div>
+                <div class="status-item ai-status">
+                    <strong>총 감지 수:</strong> <span id="total-detections">0</span>
+                </div>
             </div>
         </div>
         
@@ -79,17 +88,6 @@
                     <button class="control-btn ai-btn" id="ai-toggle-btn" onclick="toggleAIDetection()">
                         🤖 AI 감지 활성화
                     </button>
-                </div>
-                <div class="ai-stats" id="ai-stats-panel" style="display: none;">
-                    <div class="ai-stat">
-                        <strong>추론 FPS:</strong> <span id="ai-fps">0.0</span>
-                    </div>
-                    <div class="ai-stat">
-                        <strong>NPU 사용률:</strong> <span id="npu-usage">0%</span>
-                    </div>
-                    <div class="ai-stat">
-                        <strong>총 감지 수:</strong> <span id="total-detections">0</span>
-                    </div>
                 </div>
             </div>
 
